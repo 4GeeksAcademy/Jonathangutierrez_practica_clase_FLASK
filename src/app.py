@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User
+from models import db, User, Planet
 #from models import Person
 
 app = Flask(__name__)
@@ -36,6 +36,27 @@ def handle_invalid_usage(error):
 def sitemap():
     return generate_sitemap(app)
 
+
+# Crar un nuevo endpoint que cuando un cliente haga GET a /search me devuelva un formulario HTML
+@app.route('/search', methods=['GET'])
+def get_form():
+       return '''
+        <form action="/search">
+            <label for="planet_id">Planet ID:</label>
+            <input type="number" id="planet_id" name="planet_id">
+            <input type="submit" value="Search">
+        </form>
+        '''
+
+# endpoint que va a recibir una palabra como parámetro dinámico. Después, va a calcular la longitud de dicha palabra y la va a devolver al cliente. La ruta será /word-size/<string: word>
+@app.route('/word-size/<string:word>', methods=['GET'])
+def word_length(word):
+    length = str(len(word))
+    return length
+
+
+
+
 @app.route('/user', methods=['GET'])
 def handle_hello():
 
@@ -44,6 +65,26 @@ def handle_hello():
     }
 
     return jsonify(response_body), 200
+
+
+@app.route('/planet', methods=['POST'])
+def post_planet():
+    # recuperamos el cuerpo de la petición POST y la guardamos en una variable. 
+    body = request.get_json()
+    print(body)
+
+    # tenemos que recuperar cada propiedad del objeto body
+    # tenemos que crear una nueva instancia del modelo Planet, usando la información contenida en el body
+    # tenemos que añadir esta nueva instancia a la base de datos con db.session.add(new_planet) -> db.session.commit()
+
+    planet_name = body['planet_name']
+    population = body['population']
+    planet = Planet(planet_name=planet_name, population=population)
+    db.session.add(planet)
+    db.session.commit()
+
+    return jsonify({'msg': 'Planet inserted with id ' + str(planet.id)}), 200
+
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
