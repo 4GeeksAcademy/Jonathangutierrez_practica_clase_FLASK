@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, Planet
+from models import db, User, Planet, FavoritePlanet
 #from models import Person
 
 app = Flask(__name__)
@@ -49,11 +49,33 @@ def get_form():
         '''
 
 # endpoint que va a recibir una palabra como parámetro dinámico. Después, va a calcular la longitud de dicha palabra y la va a devolver al cliente. La ruta será /word-size/<string: word>
-@app.route('/word-size/<string:word>', methods=['GET'])
-def word_length(word):
-    length = str(len(word))
-    return length
+# 1. Crear el app.route
+# 2. definir la funcion y obtener el parámetro dinámico
+# 3. devolver la longitud de la palabra
 
+@app.route('/word-size/<string:word>', methods=['GET'])
+def get_word_size(word):
+
+    word_size = len(word)
+
+
+    response = {"El tañamo de la palabra es ": word_size}
+
+    if (word_size > 10):
+        return "La palabra es demasiado grande", 400
+
+    return jsonify(response), 200
+
+# En este caso, jsonify(response) convierte el diccionario response en una respuesta JSON válida.
+# Si quisieramos que delvolviera simplemente un string el código sería:
+   
+   
+    # word_size = len(word)
+
+    # if (word_size > 10):
+        # return "La palabra es demasiado grande", 400
+
+    # return str(word_size), 200
 
 
 
@@ -84,6 +106,34 @@ def post_planet():
     db.session.commit()
 
     return jsonify({'msg': 'Planet inserted with id ' + str(planet.id)}), 200
+
+# [POST] /favorite/user/<int:user_id>/planet/<int:planet_id> Añade un nuevo planet favorito al usuario actual con el planet id = planet_id.
+@app.route('/favorite/user/<int:user_id>/planet/<int:planet_id>', methods=['POST'])
+def post_favorite_planet(user_id, planet_id):
+    
+    print(str(user_id))
+    print(str(planet_id))
+
+    # primero, compruebo si el id user_id existe en la BBDD
+    # si no existe, le contesto al cliente, con un error
+
+    favorite_planet = FavoritePlanet(user_id=user_id, planet_id=planet_id)
+    db.session.add(favorite_planet)
+    db.session.commit()
+
+    return jsonify({'msg': 'Favorited planet  success ' + str(favorite_planet.insertion_date)}), 200
+
+
+
+@app.route('/favorite/user/<int:user_id>/planet/<int:planet_id>', methods=['DELETE'])
+def delete_favorite(user_id, planet_id):
+    favorite = FavoritePlanet.query.filter_by(user_id=user_id, planet_id= planet_id).first()
+    print(favorite)
+    
+    db.session.delete(favorite)
+    db.session.commit()
+    return jsonify({'msg': 'Favorito eliminado correctamente'}), 200
+
 
 
 # this only runs if `$ python src/app.py` is executed
